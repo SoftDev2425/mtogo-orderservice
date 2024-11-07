@@ -1,0 +1,38 @@
+config:
+  target: http://localhost:3000
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 50
+      name: Warm up phase
+    - duration: 120
+      arrivalRate: 50
+      rampTo: 300
+      name: Ramp up load
+    - duration: 180
+      arrivalRate: 300
+      name: Sustained peak load
+    - duration: 60
+      arrivalRate: 50
+      rampTo: 10
+      name: Cool down phase
+  plugins:
+    ensure: {}
+    apdex: {}
+    metrics-by-endpoint: {}
+  apdex:
+    threshold: 500 # acceptable user experience thresholds --> currently <= 500 = satisfied
+  ensure:
+    thresholds:
+      - http.response_time.p99: 500
+      - http.response_time.p95: 300
+      - http.errors.rate: 0.01 # Max error rate of 1%
+scenarios:
+  - flow:
+      - loop:
+          # Simulate various API requests
+          - get:
+              url: '/api/users'
+          - get:
+              url: '/api/users/00c43829-6998-4b2a-97df-683dd1ca1f74'
+        count: 50 # The entire sequence of requests will repeat 50 times for each virtual user simulated during the test phase.

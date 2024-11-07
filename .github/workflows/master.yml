@@ -1,0 +1,59 @@
+name: Master and Releaser
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setting up Node.js environment
+        uses: ./.github/workflows/shared
+
+      - name: Build the application
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }} # Use the GitHub actor (the user triggering the action)
+          password: ${{ secrets.GITHUB_TOKEN }} # Use the provided GitHub token
+
+      - name: Build and Push Container (Versioned with sha)
+        run: |
+          IMAGE_NAME="ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):${{ github.sha }}"
+          echo "Building versioned image: $IMAGE_NAME"
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
+
+      - name: Build and Push Container (Latest)
+        run: |
+          IMAGE_NAME="ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):latest"
+          echo "Building latest image: $IMAGE_NAME"
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
+
+      # Create a new version and release with semantic-release
+      - name: Create a new version and release
+        id: release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token to create a release
+
+      # Create and push version tag if a new version was released
+      - name: Create and push version tag
+        if: steps.release.outputs.version != ''
+        run: |
+          TAG_NAME=v${{ steps.release.outputs.version }}
+          echo "Creating version tag: $TAG_NAME"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
