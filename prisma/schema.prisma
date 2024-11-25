@@ -13,15 +13,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id       String  @id @default(uuid())
-  email    String  @unique
-  name     String?
-  password String?
+model Orders {
+  id          Int          @id @default(autoincrement())
+  orderDate   DateTime
+  orderNumber String
+  orderStatus String
+  orderTotal  Float
+  orderItems  OrderItems[]
 }
 
-model TestTable {
-  id    String  @id @default(uuid())
-  name  String?
-  email String?
+model OrderItems {
+  id        Int    @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  unitPrice Float
+  order     Orders @relation(fields: [orderId], references: [id])
 }
