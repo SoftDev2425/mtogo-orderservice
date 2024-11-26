@@ -1,8 +1,7 @@
-import { CustomRequest } from '../types/CustomRequest';
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 export const requireRoles = (allowedRoles: string[]) => {
-  return (req: CustomRequest, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.role || !allowedRoles.includes(req.role.toLowerCase())) {
       return res
         .status(403)

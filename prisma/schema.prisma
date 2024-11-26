@@ -14,19 +14,56 @@ datasource db {
 }
 
 model Orders {
-  id          Int          @id @default(autoincrement())
-  orderDate   DateTime
-  orderNumber String
-  orderStatus String
-  orderTotal  Float
-  orderItems  OrderItems[]
+  id                  String            @id @default(uuid())
+  customerId          String            @db.VarChar(255)
+  restaurantId        String            @db.VarChar(255)
+  status              OrderStatus       @default(YOUR_FOOD_IS_BEING_PREPARED)
+  totalAmount         Float
+  note                String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  items               OrderItems[]
+  deliveryAddress     DeliveryAddresses @relation(fields: [deliveryAddressesId], references: [id])
+  deliveryAddressesId String
+
+  @@index([customerId], name: "customer_id_index_order")
+  @@index([restaurantId], name: "restaurant_id_index_order")
+  @@index([status], name: "status_index_order")
 }
 
 model OrderItems {
-  id        Int    @id @default(autoincrement())
-  orderId   Int
-  productId Int
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Orders   @relation(fields: [orderId], references: [id])
+  menuId    String
+  title     String
   quantity  Int
-  unitPrice Float
-  order     Orders @relation(fields: [orderId], references: [id])
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId], name: "order_id_index_order_items")
+  @@index([menuId], name: "menu_id_index_order_items")
+}
+
+model DeliveryAddresses {
+  id        String   @id @default(uuid())
+  street    String
+  city      String
+  zip       String
+  floor     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Orders    Orders[]
+
+  @@index([city], name: "city_index_delivery_addresses")
+  @@index([zip], name: "zip_index_delivery_addresses")
+}
+
+enum OrderStatus {
+  YOUR_FOOD_IS_BEING_PREPARED
+  YOUR_FOOD_IS_READY_FOR_PICKUP
+  YOUR_FOOD_IS_ON_THE_WAY
+  YOUR_FOOD_HAS_BEEN_DELIVERED
+  YOUR_ORDER_HAS_BEEN_CANCELLED
 }
