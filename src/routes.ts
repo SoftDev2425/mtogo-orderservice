@@ -4,7 +4,7 @@ import OrderRouter from './routes/order.routes';
 
 function routes(app: Express) {
   app.get('/', (_req: Request, res: Response) =>
-    res.send(`Hello from MTOGO: Test Service!`),
+    res.send(`Hello from MTOGO: Order Service!`),
   );
 
   app.get('/healthcheck', (_req: Request, res: Response) =>

@@ -15,7 +15,11 @@ async function handleCreateOrder(req: Request, res: Response) {
     });
 
     // create order
-    const order = await createOrder(req, { basketId, deliveryAddress, payment });
+    const order = await createOrder(req, {
+      basketId,
+      deliveryAddress,
+      payment,
+    });
 
     res.status(201).json({
       message: 'Order created successfully',

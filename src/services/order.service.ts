@@ -9,7 +9,7 @@ import { IOrder } from '../types/order.types';
 import { produceEvent } from '../utils/produceEvent';
 import { Request } from 'express';
 
-async function fetchBasket(req: Request, basketId: string): Promise<Basket> {
+async function fetchBasket(req: Request, basketId: string) {
   try {
     const response = await fetch(
       `${process.env.RESTAURANT_SERVICE_URL}/api/basket/${basketId}`,
@@ -23,58 +23,51 @@ async function fetchBasket(req: Request, basketId: string): Promise<Basket> {
       },
     );
 
-    const data = await response.json();
+    const data = (await response.json()) as { basket: Basket };
 
     if (!response.ok) {
-      const errorMessage = (data as { message: string }).message;
-      throw new Error(
-        errorMessage
-          ? errorMessage
-          : `Error fetching basket with id: ${basketId}`,
-      );
+      throw new Error("Couldn't fetch basket");
     }
 
-    return (await response.json()) as Basket;
+    return data.basket;
   } catch (error) {
     throw new Error(`${(error as Error).message}`);
   }
 }
 
-async function processPayment(data: {
-  amount: number;
-  address: DeliveryAddress;
-  payment: PaymentMethod;
-}) {
-  console.log(data);
-  // simulate payment processing
-  const paymentSuccess = true;
-  if (!paymentSuccess) {
+async function processPayment(
+  req: Request,
+  data: {
+    amount: number;
+    address: DeliveryAddress;
+    payment: PaymentMethod;
+  },
+) {
+  try {
+    const response = await fetch(
+      `${process.env.PAYMENT_SERVICE_URL}/api/payment/order/process`,
+      {
+        method: 'POST',
+        headers: {
+          'x-user-role': req.role || '',
+          'x-user-id': req.userId || '',
+          'x-user-email': req.email || '',
+        },
+        body: JSON.stringify(data),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Error processing payment');
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error: ${error.message}`);
+    }
     throw new Error('Error processing payment');
   }
-
-  // try {
-  //   const response = await fetch(
-  //     `${process.env.PAYMENT_SERVICE_URL}/api/payment/process`,
-  //     {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify(data),
-  //     },
-  //   );
-
-  //   if (!response.ok) {
-  //     throw new Error('Error processing payment');
-  //   }
-
-  //   return await response.json();
-  // } catch (error) {
-  //   if (error instanceof Error) {
-  //     throw new Error(`Error: ${error.message}`);
-  //   }
-  //   throw new Error('Error processing payment');
-  // }
 }
 
 async function calculateTotalPrice(items: BasketItem[]) {
@@ -97,7 +90,7 @@ async function createOrder(
     const totalPrice = await calculateTotalPrice(basket.items);
 
     // call payment service to process payment
-    await processPayment({
+    await processPayment(req, {
       amount: totalPrice,
       address: deliveryAddress,
       payment,
