@@ -40,7 +40,7 @@ router.post('/', requireCustomer, orderController.handleCreateOrder);
 // get order by id
 // router.get('/:id', requireCustomer, orderController.handleGetOrderById);
 
-// get order status - WEBSOCKETS?
+// get order status
 // router.get('/:id/status', requireCustomer, orderController.handleGetOrderStatus);
 
 // update order status
