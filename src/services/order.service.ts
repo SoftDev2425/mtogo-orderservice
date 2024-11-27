@@ -97,7 +97,6 @@ async function createOrder(
       payment,
     });
 
-
     // TODO: process payment above should at least return stripe payment intent id
 
     // on success create order in db with status 'YOUR FOOD IS BEING PREPARED'
