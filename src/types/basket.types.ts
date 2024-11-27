@@ -20,6 +20,7 @@ export type Basket = {
 };
 
 export type DeliveryAddress = {
+  recipentName: string;
   street: string;
   city: string;
   zip: string;

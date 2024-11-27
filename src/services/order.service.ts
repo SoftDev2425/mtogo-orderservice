@@ -49,6 +49,7 @@ async function processPayment(
       {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-user-role': req.role || '',
           'x-user-id': req.userId || '',
           'x-user-email': req.email || '',
@@ -117,19 +118,57 @@ async function createOrder(
       },
     });
 
+    // handle clear basket (that restaurantservice will pick up)
+    // await fetch(
+    //   `${process.env.RESTAURANT_SERVICE_URL}/api/basket/${basketId}/clear`,
+    //   {
+    //     method: 'POST',
+    //     headers: {
+    //       'x-user-role': req.role || '',
+    //       'x-user-id': req.userId || '',
+    //       'x-user-email': req.email || '',
+    //     },
+    //   },
+    // );
+
+    const getRestaurantDataResponse = await fetch(
+      `${process.env.RESTAURANT_SERVICE_URL}/api/restaurants/${basket.restaurantId}`,
+      {
+        method: 'GET',
+      },
+    );
+
+    const getRestaurantData = (await getRestaurantDataResponse.json()) as {
+      restaurant: {
+        name: string;
+        phone: string;
+        street: string;
+        city: string;
+        zip: string;
+        x: number;
+        y: number;
+      };
+    };
+
+    console.log('getRestaurantData', getRestaurantData);
+
     // produce email event (that notificationservice will pick up)
-    await produceEvent('emailNotification', {
+    await produceEvent('emailNotification_orderCreated', {
+      recipentEmail: req.email,
       orderId: order.id,
-      customerId: basket.customerId,
+      restaurantData: getRestaurantData.restaurant,
+      deliveryAddress,
+      menuItems: basket.items,
     });
 
     // produce order event (that deliveryservice will pick up)
-    await produceEvent('deliveryService', {
-      orderId: order.id,
-      customerId: basket.customerId,
-      restaurantId: basket.restaurantId,
-      deliveryAddress,
-    });
+    // await produceEvent('deliveryService_orderCreated', {
+    //   orderId: order.id,
+    //   customerId: basket.customerId,
+    //   restaurantId: basket.restaurantId,
+    //   deliveryAddress,
+    //   menuItems: basket.items,
+    // });
 
     // on failure send error message to client
   } catch (error) {

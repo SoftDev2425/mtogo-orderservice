@@ -1,4 +1,7 @@
 import { Kafka, Producer } from 'kafkajs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 let producer: Producer;
 
