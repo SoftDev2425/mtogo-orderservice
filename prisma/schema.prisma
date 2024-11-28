@@ -19,6 +19,7 @@ model Orders {
   restaurantId        String            @db.VarChar(255)
   status              OrderStatus       @default(YOUR_FOOD_IS_BEING_PREPARED)
   totalAmount         Float
+  paymentIntentId     String
   note                String?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt

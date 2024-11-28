@@ -8,6 +8,39 @@ import prisma from '../../prisma/client';
 import { IOrder } from '../types/order.types';
 import { produceEvent } from '../utils/produceEvent';
 import { Request } from 'express';
+import { Queue, Worker } from 'bullmq';
+
+const connection = {
+  host: process.env.REDIS_HOST,
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+};
+
+const orderQueue = new Queue('order-status', { connection });
+
+new Worker(
+  'order-status',
+  async job => {
+    const { orderId } = job.data;
+
+    try {
+      await prisma.orders.update({
+        where: {
+          id: orderId,
+        },
+        data: {
+          status: 'YOUR_FOOD_IS_READY_FOR_PICKUP',
+        },
+      });
+    } catch (error) {
+      console.error('Error updating order status:', error);
+    }
+  },
+  { connection },
+);
+
+export async function scheduleOrderStatusUpdate(orderId: string) {
+  await orderQueue.add('update-status', { orderId }, { delay: 30000 });
+}
 
 async function fetchBasket(req: Request, basketId: string) {
   try {
@@ -91,19 +124,22 @@ async function createOrder(
     const totalPrice = await calculateTotalPrice(basket.items);
 
     // call payment service to process payment
-    await processPayment(req, {
+    const paymentData = (await processPayment(req, {
       amount: totalPrice,
       address: deliveryAddress,
       payment,
-    });
-
-    // TODO: process payment above should at least return stripe payment intent id
+    })) as {
+      payment: {
+        id: string;
+      };
+    };
 
     // on success create order in db with status 'YOUR FOOD IS BEING PREPARED'
     const order = await prisma.orders.create({
       data: {
         customerId: basket.customerId,
         restaurantId: basket.restaurantId,
+        paymentIntentId: paymentData.payment.id,
         deliveryAddress: {
           create: deliveryAddress,
         },
@@ -152,8 +188,6 @@ async function createOrder(
       };
     };
 
-    console.log('getRestaurantData', getRestaurantData);
-
     // produce email event (that notificationservice will pick up)
     await produceEvent('emailNotification_orderCreated', {
       recipentEmail: req.email,
@@ -163,14 +197,19 @@ async function createOrder(
       menuItems: basket.items,
     });
 
+    // produce event for restaurant (that restaurantservice will pick up) to notify about new order
+    // they can change the order status to 'READY FOR PICK UP'
+    // for now we simulate after 30 seconds to change the order status
+    await scheduleOrderStatusUpdate(order.id);
+
     // produce order event (that deliveryservice will pick up)
-    // await produceEvent('deliveryService_orderCreated', {
-    //   orderId: order.id,
-    //   customerId: basket.customerId,
-    //   restaurantId: basket.restaurantId,
-    //   deliveryAddress,
-    //   menuItems: basket.items,
-    // });
+    await produceEvent('deliveryService_orderCreated', {
+      orderId: order.id,
+      customerId: basket.customerId,
+      restaurantData: getRestaurantData.restaurant,
+      deliveryAddress,
+      menuItems: basket.items,
+    });
 
     // on failure send error message to client
   } catch (error) {
