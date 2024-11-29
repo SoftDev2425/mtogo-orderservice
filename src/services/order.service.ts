@@ -56,10 +56,13 @@ async function fetchBasket(req: Request, basketId: string) {
       },
     );
 
-    const data = (await response.json()) as { basket: Basket };
+    const data = (await response.json()) as {
+      basket: Basket | null;
+      message: string;
+    };
 
     if (!response.ok) {
-      throw new Error("Couldn't fetch basket");
+      throw new Error(data.message);
     }
 
     return data.basket;
@@ -157,17 +160,21 @@ async function createOrder(
     });
 
     // handle clear basket (that restaurantservice will pick up)
-    // await fetch(
-    //   `${process.env.RESTAURANT_SERVICE_URL}/api/basket/${basketId}/clear`,
-    //   {
-    //     method: 'POST',
-    //     headers: {
-    //       'x-user-role': req.role || '',
-    //       'x-user-id': req.userId || '',
-    //       'x-user-email': req.email || '',
-    //     },
-    //   },
-    // );
+    const clearBasket = await fetch(
+      `${process.env.RESTAURANT_SERVICE_URL}/api/basket/${basketId}/clear`,
+      {
+        method: 'DELETE',
+        headers: {
+          'x-user-role': req.role || '',
+          'x-user-id': req.userId || '',
+          'x-user-email': req.email || '',
+        },
+      },
+    );
+
+    if (!clearBasket.ok) {
+      console.error('Failed to clear basket');
+    }
 
     const getRestaurantDataResponse = await fetch(
       `${process.env.RESTAURANT_SERVICE_URL}/api/restaurants/${basket.restaurantId}`,
