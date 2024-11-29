@@ -4,10 +4,10 @@ import { produceEvent } from '../../utils/produceEvent';
 import { handleUpdateOrderStatus } from '../../services/order.service';
 
 export async function orderStatusUpdateConsumer() {
-  const consumer = await createConsumer('deliveryService_emailConsumer');
+  const consumer = await createConsumer('orderStatusUpdateConsumer');
 
   await consumer.subscribe({
-    topic: 'deliveryService_orderCreated',
+    topic: 'orderStatusUpdate',
     fromBeginning: false,
   });
 
@@ -26,16 +26,13 @@ export async function orderStatusUpdateConsumer() {
             event,
           );
 
-          await handleUpdateOrderStatus(event);
+          const order = await handleUpdateOrderStatus(event);
 
           // produce notification event
-          await produceEvent(
-            'notificationService_OrderStatusUpdate',
-            {
-              orderId: event.orderId,
-              status: event.status,
-            },
-          );
+          await produceEvent('notificationService_OrderStatusUpdate', {
+            order,
+            status: event.status,
+          });
         }
 
         console.log('Message processed successfully');

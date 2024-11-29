@@ -248,12 +248,22 @@ async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
       throw new Error('Order not found');
     }
 
-    return await prisma.orders.update({
+    if (order.status === 'YOUR_FOOD_HAS_BEEN_DELIVERED') {
+      return order;
+    }
+
+    await prisma.orders.update({
       where: {
         id: event.orderId,
       },
       data: {
         status: event.status,
+      },
+    });
+
+    return await prisma.orders.findUnique({
+      where: {
+        id: event.orderId,
       },
     });
   } catch (error) {
