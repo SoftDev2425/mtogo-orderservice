@@ -5,10 +5,11 @@ import {
   PaymentMethod,
 } from '../types/basket.types';
 import prisma from '../../prisma/client';
-import { IOrder } from '../types/order.types';
+import { IOrder, OrderStatusUpdateEvent } from '../types/order.types';
 import { produceEvent } from '../utils/produceEvent';
 import { Request } from 'express';
 import { Queue, Worker } from 'bullmq';
+import { z } from 'zod';
 
 const connection = {
   host: process.env.REDIS_HOST,
@@ -224,4 +225,43 @@ async function createOrder(
   }
 }
 
-export { createOrder };
+async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
+  try {
+    z.object({
+      orderId: z.string(),
+      status: z.enum([
+        'YOUR_FOOD_IS_BEING_PREPARED',
+        'YOUR_FOOD_IS_READY_FOR_PICKUP',
+        'YOUR_FOOD_IS_ON_THE_WAY',
+        'YOUR_FOOD_HAS_BEEN_DELIVERED',
+        'YOUR_ORDER_HAS_BEEN_CANCELLED',
+      ]),
+    }).parse(event);
+
+    const order = await prisma.orders.findUnique({
+      where: {
+        id: event.orderId,
+      },
+    });
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    return await prisma.orders.update({
+      where: {
+        id: event.orderId,
+      },
+      data: {
+        status: event.status,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error('Validation error:', error.errors);
+    }
+
+    console.error('Error updating order status:', error);
+  }
+}
+export { createOrder, handleUpdateOrderStatus };

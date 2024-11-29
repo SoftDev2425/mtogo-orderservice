@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import createServer from './utils/server';
 import prisma from '../prisma/client';
 import { initializeProducer, shutdownProducer } from './utils/produceEvent';
+import startConsumers from './kafka/app';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ main()
   .then(async () => {
     await prisma.$connect();
     await initializeProducer();
+    await startConsumers();
   })
   .catch(async e => {
     console.error(e);
