@@ -12,7 +12,7 @@
     "prepare": "husky || true",
     "test": "jest --runInBand --verbose --coverage",
     "build-docker-image": "docker build -t testservice .",
-    "start:prod": "npx prisma db push && node src/index.js"
+    "start:prod": "npx prisma db push --accept-data-loss && node src/index.js"
   },
   "keywords": [],
   "author": "",
