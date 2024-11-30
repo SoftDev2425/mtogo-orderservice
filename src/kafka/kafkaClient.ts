@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const kafka = new Kafka({
-  clientId: 'order-service',
+  clientId: 'mtogo',
   brokers: [process.env.KAFKA_BROKER ?? 'kafka:9092'],
 });
 
