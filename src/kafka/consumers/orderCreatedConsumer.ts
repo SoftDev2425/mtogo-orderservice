@@ -4,7 +4,7 @@ import { produceEvent } from '../../utils/produceEvent';
 import { handleUpdateOrderStatus } from '../../services/order.service';
 
 export async function orderStatusUpdateConsumer() {
-  const consumer = await createConsumer('orderStatusUpdateConsumer');
+  const consumer = await createConsumer('mtogo-orderStatusUpdateConsumer');
 
   await consumer.subscribe({
     topic: 'orderStatusUpdate',
