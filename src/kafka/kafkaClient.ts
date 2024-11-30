@@ -5,7 +5,7 @@ dotenv.config();
 
 const kafka = new Kafka({
   clientId: 'order-service',
-  brokers: [process.env.KAFKA_BROKER ?? 'kafka:9092', 'kafka:9093'],
+  brokers: [process.env.KAFKA_BROKER ?? 'kafka:9092'],
 });
 
 export default kafka;
