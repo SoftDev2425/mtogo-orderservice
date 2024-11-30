@@ -12,8 +12,8 @@ import { Queue, Worker } from 'bullmq';
 import { z } from 'zod';
 
 const connection = {
-  host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6380'),
 };
 
 const orderQueue = new Queue('order-status', { connection });
