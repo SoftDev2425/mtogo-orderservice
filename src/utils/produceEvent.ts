@@ -7,8 +7,8 @@ let producer: Producer;
 
 async function initializeProducer() {
   const kafka = new Kafka({
-    clientId: 'restaurant-order-service',
-    brokers: [process.env.KAFKA_BROKER ?? 'kafka:9092'],
+    clientId: 'mtogo-orderservice',
+    brokers: ['kafka:9092'],
   });
 
   producer = kafka.producer();
