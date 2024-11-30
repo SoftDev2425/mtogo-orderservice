@@ -8,7 +8,7 @@ let producer: Producer;
 async function initializeProducer() {
   const kafka = new Kafka({
     clientId: 'restaurant-order-service',
-    brokers: [process.env.KAFKA_BROKER ?? 'kafka:9092', 'kafka:9093'],
+    brokers: [process.env.KAFKA_BROKER ?? 'kafka:9092'],
   });
 
   producer = kafka.producer();
@@ -20,6 +20,7 @@ async function initializeProducer() {
 }
 
 async function produceEvent(topic: string, message: Record<string, unknown>) {
+  console.log('Producing event to topic:', topic);
   if (!producer) {
     throw new Error(
       'Producer is not initialized, Call initializeProducer() first',
