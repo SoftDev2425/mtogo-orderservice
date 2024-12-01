@@ -196,9 +196,6 @@ async function createOrder(
       };
     };
 
-    console.log('Got restaurant data...', getRestaurantData);
-
-    console.log('Producing emailNotification_orderCreated event...');
     // produce email event (that notificationservice will pick up)
     await produceEvent('emailNotification_orderCreated', {
       recipentEmail: req.email,
@@ -222,7 +219,7 @@ async function createOrder(
       menuItems: basket.items,
     });
 
-    // on failure send error message to client
+    return order;
   } catch (error) {
     throw new Error(`Failed to create order: ${error}`);
   }

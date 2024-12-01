@@ -28,6 +28,8 @@ export async function orderStatusUpdateConsumer() {
 
           const order = await handleUpdateOrderStatus(event);
 
+          console.log('Order status updated:', order);
+
           // produce notification event
           await produceEvent('notificationService_OrderStatusUpdate', {
             order,
