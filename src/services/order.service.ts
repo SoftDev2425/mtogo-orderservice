@@ -37,6 +37,48 @@ new Worker(
         orderId: orderId,
         status,
       });
+
+      if (status === 'YOUR_FOOD_HAS_BEEN_DELIVERED') {
+        // produce restuarant payout event (that paymentservice will pick up)
+        const order = await prisma.orders.findUnique({
+          where: {
+            id: orderId,
+          },
+        });
+
+        if (!order) {
+          console.error('Order not found');
+          return;
+        }
+
+        const delivery = await fetch(
+          `${process.env.DELIVERY_SERVICE_URL}/api/delivery/order/${order.id}`,
+        );
+
+        if (!delivery.ok) {
+          console.error('Error fetching delivery data');
+          return;
+        }
+
+        const deliveryData = await delivery.json();
+
+        const restaurantData = await fetch(
+          `${process.env.AUTH_SERVICE_URL}/api/restaurants/${order.restaurantId}`,
+        );
+
+        if (!restaurantData.ok) {
+          console.error('Error fetching restaurant data');
+          return;
+        }
+
+        const restaurant = await restaurantData.json();
+
+        produceEvent('paymentService_Payout', {
+          order,
+          deliveryData,
+          restaurant,
+        });
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
     }
@@ -224,16 +266,6 @@ async function createOrder(
       menuItems: basket.items,
     });
 
-    // produce event for restaurant (that restaurantservice will pick up) to notify about new order
-    // they can change the order status to 'READY FOR PICK UP'
-    // for now we simulate after 30 seconds to change the order status
-    await scheduleOrderStatusUpdate(order.id, 'YOUR_FOOD_IS_ON_THE_WAY', 15000);
-    await scheduleOrderStatusUpdate(
-      order.id,
-      'YOUR_FOOD_HAS_BEEN_DELIVERED',
-      30000,
-    );
-
     // produce order event (that deliveryservice will pick up)
     await produceEvent('deliveryService_orderCreated', {
       orderId: order.id,
@@ -242,6 +274,14 @@ async function createOrder(
       deliveryAddress,
       menuItems: basket.items,
     });
+
+    // schedule order status updates - currently simulated. Will be made as endpoints in the future
+    await scheduleOrderStatusUpdate(order.id, 'YOUR_FOOD_IS_ON_THE_WAY', 15000);
+    await scheduleOrderStatusUpdate(
+      order.id,
+      'YOUR_FOOD_HAS_BEEN_DELIVERED',
+      30000,
+    );
 
     return order;
   } catch (error) {
@@ -261,9 +301,6 @@ async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
         'YOUR_ORDER_HAS_BEEN_CANCELLED',
       ]),
     }).parse(event);
-
-    console.log('WE ARE HERE!');
-    console.log(event.orderId, event.status);
 
     const order = await prisma.orders.findUnique({
       where: {
