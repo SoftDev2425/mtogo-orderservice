@@ -21,7 +21,7 @@ const orderQueue = new Queue('order-status', { connection });
 new Worker(
   'order-status',
   async job => {
-    const { orderId } = job.data;
+    const { orderId, status } = job.data;
 
     try {
       await prisma.orders.update({
@@ -29,8 +29,13 @@ new Worker(
           id: orderId,
         },
         data: {
-          status: 'YOUR_FOOD_IS_READY_FOR_PICKUP',
+          status,
         },
+      });
+
+      produceEvent('orderStatusUpdate', {
+        orderId: orderId,
+        status,
       });
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -39,8 +44,22 @@ new Worker(
   { connection },
 );
 
-export async function scheduleOrderStatusUpdate(orderId: string) {
-  await orderQueue.add('update-status', { orderId }, { delay: 30000 });
+export async function scheduleOrderStatusUpdate(
+  orderId: string,
+  status:
+    | 'YOUR_FOOD_IS_READY_FOR_PICKUP'
+    | 'YOUR_FOOD_IS_ON_THE_WAY'
+    | 'YOUR_FOOD_HAS_BEEN_DELIVERED',
+  delay = 30000,
+) {
+  await orderQueue.add(
+    'update-status',
+    {
+      orderId,
+      status,
+    },
+    { delay },
+  );
 }
 
 async function fetchBasket(req: Request, basketId: string) {
@@ -208,7 +227,12 @@ async function createOrder(
     // produce event for restaurant (that restaurantservice will pick up) to notify about new order
     // they can change the order status to 'READY FOR PICK UP'
     // for now we simulate after 30 seconds to change the order status
-    await scheduleOrderStatusUpdate(order.id);
+    await scheduleOrderStatusUpdate(order.id, 'YOUR_FOOD_IS_ON_THE_WAY', 15000);
+    await scheduleOrderStatusUpdate(
+      order.id,
+      'YOUR_FOOD_HAS_BEEN_DELIVERED',
+      30000,
+    );
 
     // produce order event (that deliveryservice will pick up)
     await produceEvent('deliveryService_orderCreated', {
@@ -238,6 +262,9 @@ async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
       ]),
     }).parse(event);
 
+    console.log('WE ARE HERE!');
+    console.log(event.orderId, event.status);
+
     const order = await prisma.orders.findUnique({
       where: {
         id: event.orderId,
@@ -245,10 +272,12 @@ async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
     });
 
     if (!order) {
+      console.log('Order not found');
       throw new Error('Order not found');
     }
 
     if (order.status === 'YOUR_FOOD_HAS_BEEN_DELIVERED') {
+      console.log('Order already delivered');
       return order;
     }
 
