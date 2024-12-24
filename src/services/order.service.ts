@@ -257,7 +257,7 @@ async function createOrder(
       };
     };
 
-    // produce email event (that notificationservice will pick up)
+    // producing email event (that notificationservice will pick up)
     await produceEvent('emailNotification_orderCreated', {
       recipentEmail: req.email,
       orderId: order.id,
@@ -266,7 +266,7 @@ async function createOrder(
       menuItems: basket.items,
     });
 
-    // produce order event (that deliveryservice will pick up)
+    // producing order event (that deliveryservice will pick up)
     await produceEvent('deliveryService_orderCreated', {
       orderId: order.id,
       customerId: basket.customerId,
@@ -285,6 +285,7 @@ async function createOrder(
 
     return order;
   } catch (error) {
+    console.log(error);
     throw new Error(`Failed to create order: ${error}`);
   }
 }
