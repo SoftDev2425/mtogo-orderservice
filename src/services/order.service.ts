@@ -104,7 +104,7 @@ export async function scheduleOrderStatusUpdate(
   );
 }
 
-async function fetchBasket(req: Request, basketId: string) {
+export async function fetchBasket(req: Request, basketId: string) {
   try {
     const response = await fetch(
       `${process.env.RESTAURANT_SERVICE_URL}/api/basket/${basketId}`,
@@ -169,7 +169,7 @@ async function processPayment(
   }
 }
 
-async function calculateTotalPrice(items: BasketItem[]) {
+export async function calculateTotalPrice(items: BasketItem[]) {
   return items.reduce((total, item) => total + item.quantity * item.price, 0);
 }
 
@@ -319,18 +319,12 @@ async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
       return order;
     }
 
-    await prisma.orders.update({
+    return await prisma.orders.update({
       where: {
         id: event.orderId,
       },
       data: {
         status: event.status,
-      },
-    });
-
-    return await prisma.orders.findUnique({
-      where: {
-        id: event.orderId,
       },
     });
   } catch (error) {
@@ -339,6 +333,7 @@ async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
     }
 
     console.error('Error updating order status:', error);
+    throw error;
   }
 }
 export { createOrder, handleUpdateOrderStatus };

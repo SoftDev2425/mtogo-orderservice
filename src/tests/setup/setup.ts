@@ -16,8 +16,8 @@ global.beforeEach(async () => {
   // clear database from all tables
   await prisma.$transaction([
     prisma.orderItems.deleteMany(),
-    prisma.deliveryAddresses.deleteMany(),
     prisma.orders.deleteMany(),
+    prisma.deliveryAddresses.deleteMany(),
   ]);
 });
 
