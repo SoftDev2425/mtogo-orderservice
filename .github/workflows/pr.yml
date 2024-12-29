@@ -5,6 +5,11 @@ on:
     branches:
       - master
 
+env:
+  NODE_ENV: test
+  DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+
+
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
