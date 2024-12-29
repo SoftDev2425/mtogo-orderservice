@@ -29,11 +29,15 @@ function createServer() {
     help: 'CPU usage of the Node.js process as a percentage',
     collect() {
       const usage = process.cpuUsage();
-      const elapsedTime = process.uptime();
-      const userTime = usage.user / 1e6; // Convert from microseconds to milliseconds
+      const elapsedTime = process.uptime(); // Total elapsed time in seconds
+      const userTime = usage.user / 1e6; // Convert from microseconds to seconds
       const systemTime = usage.system / 1e6;
-      const totalCpuTime = (userTime + systemTime) / (elapsedTime * 1000); // Percentage
-      this.set(totalCpuTime * 100); // Set gauge value in percentage
+
+      const totalCpuTime = (userTime + systemTime) / elapsedTime; // Total CPU time per second
+      const numCores = os.cpus().length; // Number of CPU cores
+      const cpuPercentage = (totalCpuTime / numCores) * 100; // Percentage relative to total cores
+
+      this.set(cpuPercentage); // Set gauge value
     },
   });
 
