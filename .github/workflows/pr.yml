@@ -5,9 +5,25 @@ on:
     branches:
       - master
 
+env:
+  NODE_ENV: test
+  DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+
+
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+
     steps:
       # Step 1 - Checkout code
       - uses: actions/checkout@v3

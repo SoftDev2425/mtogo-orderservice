@@ -26,7 +26,7 @@ const deliveryAddressSchema = z.object(
   },
   {
     message:
-      'Invalid delivery address object. Required fields: street, city, zip. Optional field: floor',
+      'Invalid delivery address. Required fields: street, city, zip. Optional field: floor',
   },
 );
 

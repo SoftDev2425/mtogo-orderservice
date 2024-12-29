@@ -104,7 +104,7 @@ export async function scheduleOrderStatusUpdate(
   );
 }
 
-async function fetchBasket(req: Request, basketId: string) {
+export async function fetchBasket(req: Request, basketId: string) {
   try {
     const response = await fetch(
       `${process.env.RESTAURANT_SERVICE_URL}/api/basket/${basketId}`,
@@ -169,7 +169,7 @@ async function processPayment(
   }
 }
 
-async function calculateTotalPrice(items: BasketItem[]) {
+export async function calculateTotalPrice(items: BasketItem[]) {
   return items.reduce((total, item) => total + item.quantity * item.price, 0);
 }
 
@@ -257,7 +257,7 @@ async function createOrder(
       };
     };
 
-    // produce email event (that notificationservice will pick up)
+    // producing email event (that notificationservice will pick up)
     await produceEvent('emailNotification_orderCreated', {
       recipentEmail: req.email,
       orderId: order.id,
@@ -266,7 +266,7 @@ async function createOrder(
       menuItems: basket.items,
     });
 
-    // produce order event (that deliveryservice will pick up)
+    // producing order event (that deliveryservice will pick up)
     await produceEvent('deliveryService_orderCreated', {
       orderId: order.id,
       customerId: basket.customerId,
@@ -285,6 +285,7 @@ async function createOrder(
 
     return order;
   } catch (error) {
+    console.log(error);
     throw new Error(`Failed to create order: ${error}`);
   }
 }
@@ -318,18 +319,12 @@ async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
       return order;
     }
 
-    await prisma.orders.update({
+    return await prisma.orders.update({
       where: {
         id: event.orderId,
       },
       data: {
         status: event.status,
-      },
-    });
-
-    return await prisma.orders.findUnique({
-      where: {
-        id: event.orderId,
       },
     });
   } catch (error) {
@@ -338,6 +333,7 @@ async function handleUpdateOrderStatus(event: OrderStatusUpdateEvent) {
     }
 
     console.error('Error updating order status:', error);
+    throw error;
   }
 }
 export { createOrder, handleUpdateOrderStatus };
